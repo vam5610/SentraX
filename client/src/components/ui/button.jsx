@@ -50,14 +50,21 @@ function Button({
 }) {
   const Comp = asChild ? Slot.Root : "button"
 
+  // Ensure native <button> defaults to type="button" to avoid implicit form submit
+  const compProps = { ...props }
+  if (Comp === "button" && compProps.type === undefined) {
+    compProps.type = "button"
+  }
+
   return (
     <Comp
       data-slot="button"
       data-variant={variant}
       data-size={size}
       className={cn(buttonVariants({ variant, size, className }))}
-      {...props} />
-  );
+      {...compProps}
+    />
+  )
 }
 
 export { Button, buttonVariants }
