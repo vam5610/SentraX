@@ -1,6 +1,8 @@
 import { Search, Bell, ShieldCheck } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
+import { getToken, getUserName, getUserRole } from "@/utils/auth"
+import avatarImg from "@/assets/avatar.png"
 
 function Navbar() {
   return (
@@ -28,20 +30,24 @@ function Navbar() {
         <div className="flex items-center gap-3 rounded-full border border-zinc-800 bg-zinc-900/60 px-3 py-1.5">
           <div className="relative">
             <img
-              src="https://i.pravatar.cc/40?img=5"
-              alt="Admin"
-              className="h-8 w-8 rounded-full"
+              src={avatarImg}
+              alt="Profile"
+              className="h-8 w-8 rounded-full border border-zinc-800 object-cover"
             />
             <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border border-zinc-950 bg-emerald-500" />
           </div>
           <div className="text-xs">
-            <p className="font-medium text-zinc-100">Admin</p>
+            <p className="font-medium text-zinc-100">
+              {getToken() ? getUserName() || "Sentra User" : "Guest Visitor"}
+            </p>
             <div className="flex items-center gap-1 text-zinc-400">
               <ShieldCheck className="h-3 w-3 text-emerald-400" />
-              <span>Super Admin</span>
+              <span>{getToken() ? getUserRole()?.toUpperCase() : "GUEST"}</span>
             </div>
           </div>
-          <Badge className="bg-emerald-500/10 text-emerald-400">Online</Badge>
+          <Badge className="bg-emerald-500/10 text-emerald-400">
+            {getToken() ? "Online" : "Offline"}
+          </Badge>
         </div>
       </div>
     </header>
