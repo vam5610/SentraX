@@ -22,7 +22,7 @@ function DashboardLayout() {
       <div className="flex min-h-screen">
         <aside className="hidden w-64 border-r border-zinc-800 bg-zinc-950/80 p-6 lg:block">
           <div className="mb-8">
-            <p className="text-sm font-semibold text-white">SentraX</p>
+            <p className="text-2xl font-semibold text-white">SENTRAX</p>
             <p className="text-xs text-zinc-500">Secure Data Access Layer</p>
           </div>
           <nav className="space-y-2 text-sm text-zinc-400">
