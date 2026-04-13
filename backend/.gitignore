@@ -5,6 +5,9 @@ node_modules/
 dist/
 build/
 
+# Temp folders
+tmp/
+
 # Env
 *.env
 .env.local

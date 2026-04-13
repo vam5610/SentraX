@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from "react"
-import { Target, RefreshCw } from "lucide-react"
+import { useCallback, useEffect, useMemo, useState } from "react"
+import { RefreshCw, Target } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -10,14 +10,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-
-const initialLogs = [
-  { id: 1, time: "10:17 PM", user: "admin", action: "Delete Users", status: "BLOCKED", risk: "HIGH" },
-  { id: 2, time: "10:15 PM", user: "test_user", action: "SQL Injection", status: "BLOCKED", risk: "HIGH" },
-  { id: 3, time: "10:12 PM", user: "user123", action: "Login Attempt", status: "BLOCKED", risk: "MEDIUM" },
-  { id: 4, time: "10:10 PM", user: "guest", action: "View Users", status: "ALLOWED", risk: "LOW" },
-  { id: 5, time: "10:08 PM", user: "admin", action: "Attempt File Upload", status: "BLOCKED", risk: "MEDIUM" },
-]
+import api from "@/utils/api"
+import { getToken } from "@/utils/auth"
 
 const riskStyles = {
   HIGH: "bg-rose-500/20 text-rose-200 border-rose-500/40",
@@ -30,56 +24,43 @@ const statusStyles = {
   ALLOWED: "bg-emerald-600 text-white",
 }
 
-const actions = [
-  "API Access",
-  "Token Refresh",
-  "Firewall Scan",
-  "Privilege Check",
-  "SQL Injection",
-  "Delete Users",
-]
-
 function LiveMonitorPage() {
-  const [logs, setLogs] = useState(initialLogs)
-  const [newRowId, setNewRowId] = useState(null)
+  const [logs, setLogs] = useState([])
+  const [error, setError] = useState("")
+
+  const loadLogs = useCallback(async () => {
+    try {
+      const response = await api.get("/logs")
+      setLogs(
+        response.data.map((log) => ({
+          id: log.id,
+          time: new Date(log.time).toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
+          user: log.user,
+          action: log.action,
+          status: log.status,
+          risk: log.risk,
+        })),
+      )
+      setError("")
+    } catch (err) {
+      setError(err.message)
+    }
+  }, [])
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      const isAdd = Math.random() > 0.45
-      if (isAdd) {
-        const time = new Date().toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        })
-        const risk = Math.random() > 0.7 ? "HIGH" : Math.random() > 0.4 ? "MEDIUM" : "LOW"
-        const status = risk === "LOW" ? "ALLOWED" : "BLOCKED"
-        const entry = {
-          id: Date.now(),
-          time,
-          user: "system",
-          action: actions[Math.floor(Math.random() * actions.length)],
-          status,
-          risk,
-        }
-        setLogs((prev) => [entry, ...prev].slice(0, 8))
-        setNewRowId(entry.id)
-        setTimeout(() => setNewRowId(null), 600)
-      } else {
-        setLogs((prev) => {
-          if (prev.length === 0) return prev
-          const index = Math.floor(Math.random() * prev.length)
-          const updated = [...prev]
-          updated[index] = {
-            ...updated[index],
-            status: "BLOCKED",
-            risk: "HIGH",
-          }
-          return updated
-        })
-      }
-    }, 3000)
+    const token = getToken()
+    if (!token) {
+      setLogs([])
+      setError("Login to access live monitor logs")
+      return
+    }
+    loadLogs()
+    const interval = setInterval(loadLogs, 5000)
     return () => clearInterval(interval)
-  }, [])
+  }, [loadLogs])
 
   const tableRows = useMemo(
     () =>
@@ -88,17 +69,15 @@ function LiveMonitorPage() {
           key={log.id}
           className={`border-zinc-800 transition duration-200 hover:bg-zinc-800/60 ${
             log.status === "BLOCKED" ? "glow-blocked" : ""
-          } ${newRowId === log.id ? "fade-in" : ""}`}
+          }`}
         >
           <TableCell className="text-zinc-200">{log.time}</TableCell>
           <TableCell className="text-zinc-200">{log.user}</TableCell>
           <TableCell className="text-zinc-200">{log.action}</TableCell>
           <TableCell>
-            <span
-              className={`rounded-full px-3 py-1 text-xs font-semibold ${statusStyles[log.status]}`}
-            >
+            <Badge className={`border ${statusStyles[log.status]}`} variant="outline">
               {log.status}
-            </span>
+            </Badge>
           </TableCell>
           <TableCell>
             <Badge className={`border ${riskStyles[log.risk]}`} variant="outline">
@@ -107,7 +86,7 @@ function LiveMonitorPage() {
           </TableCell>
         </TableRow>
       )),
-    [logs, newRowId]
+    [logs],
   )
 
   return (
@@ -122,6 +101,12 @@ function LiveMonitorPage() {
             Real-time attack detection and activity logs.
           </p>
         </div>
+
+        {error && (
+          <div className="mt-4 rounded-lg border border-rose-500/40 bg-rose-500/5 px-4 py-2 text-xs text-rose-200">
+            {error}
+          </div>
+        )}
 
         <div className="mt-8">
           <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
@@ -145,7 +130,7 @@ function LiveMonitorPage() {
 
         <div className="mt-6 flex items-center gap-2 text-xs text-zinc-500">
           <RefreshCw className="h-3.5 w-3.5 animate-spin" />
-          Auto-refreshing every 3 seconds...
+          Auto-refreshing every 5 seconds...
         </div>
       </Card>
     </div>
