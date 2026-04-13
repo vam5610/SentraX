@@ -1,41 +1,61 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Card } from "@/components/ui/card"
 import OverviewCards from "@/components/analytics/OverviewCards"
 import ActivityChart from "@/components/analytics/ActivityChart"
 import DistributionChart from "@/components/analytics/DistributionChart"
 import TopUsersTable from "@/components/analytics/TopUsersTable"
 import { ChartPie } from "lucide-react"
-
-const chartData = [
-  { day: "Mon", total: 600, blocked: 400 },
-  { day: "Tue", total: 800, blocked: 550 },
-  { day: "Wed", total: 900, blocked: 600 },
-  { day: "Thu", total: 1000, blocked: 700 },
-  { day: "Fri", total: 850, blocked: 650 },
-  { day: "Sat", total: 1100, blocked: 850 },
-  { day: "Sun", total: 700, blocked: 600 },
-]
-
-const distributionData = [
-  { name: "SQL Injection", value: 38 },
-  { name: "Suspicious DELETE", value: 33 },
-  { name: "Unauthorized Access", value: 19 },
-  { name: "Other", value: 10 },
-]
-
-const userData = [
-  { username: "JohnDoe", role: "user", queries: 230, blocked: 24 },
-  { username: "JaneSmith", role: "user", queries: 185, blocked: 18 },
-  { username: "AdminUser", role: "admin", queries: 173, blocked: 5 },
-  { username: "Guest123", role: "guest", queries: 98, blocked: 4 },
-]
+import { apiRequest } from "@/lib/api"
+import { getToken } from "@/utils/auth"
 
 function AnalyticsPage() {
-  const [overview] = useState({
-    total: 4872,
-    blocked: 352,
-    users: 658,
+  const [overview, setOverview] = useState({
+    total: 0,
+    blocked: 0,
+    users: 0,
+    distribution: [],
   })
+  const [activityData, setActivityData] = useState([])
+  const [distributionData, setDistributionData] = useState([])
+  const [userData, setUserData] = useState([])
+  const [warning, setWarning] = useState("")
+
+  useEffect(() => {
+    let cancelled = false
+    const token = getToken()
+    if (!token) {
+      setWarning("Login to view analytics insights")
+      return () => {
+        cancelled = true
+      }
+    }
+    async function load() {
+      try {
+        const [overviewPayload, activityPayload, usersPayload] = await Promise.all([
+          apiRequest("/analytics/overview"),
+          apiRequest("/analytics/activity"),
+          apiRequest("/analytics/users"),
+        ])
+        if (cancelled) return
+        setOverview(overviewPayload)
+        setActivityData(activityPayload)
+        setDistributionData(
+          overviewPayload.distribution?.length ? overviewPayload.distribution : [],
+        )
+        setUserData(usersPayload)
+        setWarning("")
+      } catch (error) {
+        if (!cancelled) {
+          console.error("Analytics failed", error)
+          setWarning("Unable to load analytics at the moment")
+        }
+      }
+    }
+    load()
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   return (
     <div className="flex flex-1 items-center justify-center bg-[radial-gradient(circle_at_top,_rgba(59,130,246,0.15),_rgba(2,6,23,0.9)_50%,_rgba(2,6,23,0.98)_70%)] p-6">
@@ -50,11 +70,14 @@ function AnalyticsPage() {
           </p>
         </div>
 
+        {warning && (
+          <div className="mt-4 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-2 text-xs text-amber-100">
+            {warning}
+          </div>
+        )}
         <div className="mt-8 space-y-6">
           <OverviewCards stats={overview} />
-
-          <ActivityChart data={chartData} />
-
+          <ActivityChart data={activityData} />
           <div className="grid gap-6 lg:grid-cols-2">
             <DistributionChart data={distributionData} />
             <TopUsersTable users={userData} />

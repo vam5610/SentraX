@@ -4,6 +4,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Legend } from "recharts"
 const colors = ["#ef4444", "#f97316", "#facc15", "#38bdf8"]
 
 function DistributionChart({ data }) {
+  const total = data.reduce((sum, entry) => sum + (entry.value || 0), 0) || 1
   return (
     <Card className="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5 shadow-[0_0_30px_rgba(15,23,42,0.8)]">
       <p className="text-sm font-semibold text-zinc-200">Blocked Query Distribution</p>
@@ -27,20 +28,22 @@ function DistributionChart({ data }) {
             </PieChart>
           </ResponsiveContainer>
         </div>
-        <div className="flex w-full flex-col gap-2 text-sm text-zinc-200">
-          {data.map((entry, index) => (
-            <div key={entry.name} className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span
-                  className="h-3 w-3"
-                  style={{ backgroundColor: colors[index % colors.length] }}
-                />
-                <span>{entry.name}</span>
+          <div className="flex w-full flex-col gap-2 text-sm text-zinc-200">
+            {data.map((entry, index) => (
+              <div key={entry.name} className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span
+                    className="h-3 w-3"
+                    style={{ backgroundColor: colors[index % colors.length] }}
+                  />
+                  <span>{entry.name}</span>
+                </div>
+                <span className="text-xs text-zinc-400">
+                  {Math.round((entry.value / total) * 100)}%
+                </span>
               </div>
-              <span className="text-xs text-zinc-400">{entry.value}%</span>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
       </div>
     </Card>
   )

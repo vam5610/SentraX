@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Shield } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import RolePermissions from "@/components/policy-engine/RolePermissions"
@@ -6,6 +6,8 @@ import RulesList from "@/components/policy-engine/RulesList"
 import AddRuleForm from "@/components/policy-engine/AddRuleForm"
 import StatsCards from "@/components/policy-engine/StatsCards"
 import DecisionsTable from "@/components/policy-engine/DecisionsTable"
+import api from "@/utils/api"
+import { getToken, getUserRole } from "@/utils/auth"
 
 const initialPolicies = {
   admin: { SELECT: true, UPDATE: true, DELETE: true },
@@ -37,6 +39,32 @@ function PolicyEnginePage() {
     blocked: 45,
     total: 1245,
   })
+  const isAuthenticated = Boolean(getToken())
+  const role = getUserRole()
+  const canAccess = isAuthenticated && role === "admin"
+
+  useEffect(() => {
+    if (!canAccess) return
+    let mounted = true
+    api
+      .get("/policies")
+      .then((data) => {
+        if (!mounted) return
+        const normalized = data.reduce((acc, policy) => {
+          const role = policy.role.toLowerCase()
+          acc[role] = acc[role] || {}
+          acc[role][policy.action] = policy.effect === "ALLOW"
+          return acc
+        }, {})
+        setPolicies((prev) => ({ ...prev, ...normalized }))
+      })
+      .catch((error) => {
+        console.error("Failed to load policies", error)
+      })
+    return () => {
+      mounted = false
+    }
+  }, [canAccess])
 
   const updatePolicy = async (role, action, allowed) => {
     setPolicies((prev) => ({
@@ -54,11 +82,7 @@ function PolicyEnginePage() {
       ...prev,
     ])
     try {
-      await fetch("/api/policies/update", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ role, action, allowed }),
-      })
+      await api.post("/policies/update", { role, action, allowed })
     } catch (error) {
       console.error("Policy update failed", error)
     }
@@ -93,18 +117,31 @@ function PolicyEnginePage() {
       total: prev.total + 1,
     }))
     try {
-      await fetch("/api/policies/add", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      })
+      await api.post("/policies/add", payload)
     } catch (error) {
       console.error("Add rule failed", error)
     }
   }
 
+  if (!canAccess) {
+    return (
+      <div className="flex flex-1 items-center justify-center bg-[radial-gradient(circle_at_top,_rgba(59,130,246,0.2),_rgba(2,6,23,0.95)_50%,_rgba(2,6,23,0.98)_70%)] p-6">
+        <Card className="w-full max-w-4xl rounded-2xl border border-zinc-800 bg-zinc-900/80 p-8 text-center shadow-[0_0_40px_rgba(59,130,246,0.2)]">
+          <Shield className="mx-auto mb-4 h-10 w-10 text-sky-400 drop-shadow-[0_0_14px_rgba(56,189,248,0.6)]" />
+          <h2 className="text-3xl font-bold text-white">Policy Engine</h2>
+          <p className="mt-2 text-sm text-zinc-400">
+            Administrative policy controls are restricted to admins only.
+          </p>
+          <p className="mt-4 text-xs text-amber-200">
+            Please sign in as an administrator to continue.
+          </p>
+        </Card>
+      </div>
+    )
+  }
+
   return (
-    <div className="flex flex-1 items-center justify-center bg-[radial-gradient(circle_at_top,_rgba(59,130,246,0.2),_rgba(2,6,23,0.92)_50%,_rgba(2,6,23,0.98)_70%)] p-6">
+    <div className="flex flex-1 items-center justify-center bg-[radial-gradient(circle_at_top,_rgba(59,130,246,0.2),_rgba(2,6,23,0.95)_50%,_rgba(2,6,23,0.98)_70%)] p-6">
       <Card className="w-full max-w-6xl rounded-2xl border border-zinc-800 bg-zinc-900/80 p-8 shadow-[0_0_40px_rgba(59,130,246,0.2)]">
         <div className="flex flex-col items-center gap-2 text-center">
           <div className="flex items-center gap-3 text-white">
@@ -114,14 +151,16 @@ function PolicyEnginePage() {
           <p className="text-sm text-zinc-400">
             Manage access rules and security policies dynamically
           </p>
+          {!isAuthenticated && (
+            <div className="mt-2 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-2 text-xs text-amber-200">
+              Login to sync with the backend policy store
+            </div>
+          )}
         </div>
 
         <div className="mt-8 grid gap-6 lg:grid-cols-[2fr_1fr]">
           <div className="space-y-6">
-            <RolePermissions
-              policies={policies}
-              onToggle={updatePolicy}
-            />
+            <RolePermissions policies={policies} onToggle={updatePolicy} />
             <RulesList rules={rules} onToggle={toggleRule} />
             <AddRuleForm
               formState={formState}
