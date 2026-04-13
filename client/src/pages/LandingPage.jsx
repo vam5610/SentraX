@@ -1,5 +1,6 @@
-import { Link } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
 import { Button } from "@/components/ui/button"
+import { removeToken } from "@/utils/auth"
 
 const features = [
   {
@@ -21,6 +22,12 @@ const features = [
 ]
 
 function LandingPage() {
+  const navigate = useNavigate()
+
+  const handleViewDemo = () => {
+    removeToken()
+    navigate("/dashboard")
+  }
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-zinc-950 via-zinc-900 to-black px-4 py-16 text-white">
       <div className="relative w-full max-w-6xl rounded-3xl border border-zinc-800 bg-zinc-900/80 p-10 shadow-2xl shadow-sky-500/10 backdrop-blur">
@@ -36,11 +43,13 @@ function LandingPage() {
               flagged for review.
             </p>
             <div className="flex flex-wrap gap-3">
-              <Link to="/dashboard">
-                <Button className="bg-gradient-to-r from-sky-500 to-blue-600 text-white" size="lg">
-                  View demo
-                </Button>
-              </Link>
+              <Button
+                className="bg-gradient-to-r from-sky-500 to-blue-600 text-white"
+                size="lg"
+                onClick={handleViewDemo}
+              >
+                View demo
+              </Button>
               <Link to="/signup">
                 <Button variant="ghost" size="lg" className="border border-zinc-700 text-white">
                   Create account

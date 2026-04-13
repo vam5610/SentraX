@@ -1,15 +1,22 @@
-import { NavLink, Outlet } from "react-router-dom"
+import { useMemo } from "react"
+import { Link, NavLink, Outlet, useLocation } from "react-router-dom"
 import { Activity, Bug, ChartPie, ShieldAlert, ShieldCheck, Terminal } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import AuthGate from "@/components/zero-trust/AuthGate"
-import { getUserRole, logout } from "@/utils/auth"
+import { getToken, getUserName, getUserRole, logout } from "@/utils/auth"
+import avatarImg from "@/assets/avatar.png"
 
 const navLinkBase =
   "flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm"
 
 function DashboardLayout() {
-  const role = getUserRole()
+  const location = useLocation()
+  const token = useMemo(() => getToken(), [location.pathname])
+  const roleValue = token ? getUserRole() ?? "user" : null
+  const name = token ? getUserName() ?? "Sentra User" : "Guest Visitor"
+  const displayRole = token ? roleValue?.toUpperCase() : "GUEST"
+
   return (
     <div className="dark min-h-screen bg-zinc-950 text-zinc-100">
       <div className="flex min-h-screen">
@@ -68,7 +75,7 @@ function DashboardLayout() {
             >
               <ChartPie className="h-4 w-4" /> Analytics
             </NavLink>
-            {role === "admin" && (
+            {roleValue?.toLowerCase?.() === "admin" && (
               <NavLink
                 to="/policy-engine"
                 className={({ isActive }) =>
@@ -92,14 +99,31 @@ function DashboardLayout() {
         </aside>
 
         <div className="flex flex-1 flex-col">
-          <div className="flex flex-col-reverse gap-3 border-b border-zinc-800 bg-zinc-950/60 px-6 py-4 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex items-center gap-3 text-xs text-zinc-400">
-              <ShieldAlert className="h-4 w-4 text-emerald-300" />
-              Signed in as <span className="font-semibold text-white">{role}</span>
-            </div>
-            <Button size="sm" variant="outline" onClick={logout}>
-              Logout
-            </Button>
+          <div className="flex items-center justify-end border-b border-zinc-800 bg-zinc-950/60 px-6 py-3">
+            {/* <div className="flex items-center gap-3 rounded-2xl border border-zinc-800 bg-zinc-950/70 px-4 py-2 text-right">
+              <img
+                src={avatarImg}
+                alt="avatar"
+                className="h-10 w-10 rounded-full border border-zinc-800 object-cover"
+              />
+              <div>
+                <p className="text-sm font-semibold text-white">{name}</p>
+                <p className="text-[10px] uppercase tracking-[0.4em] text-zinc-500">
+                  {displayRole}
+                </p>
+              </div>
+            </div> */}
+            {token ? (
+              <Button size="sm" variant="outline" className="ml-4" onClick={logout}>
+                Logout
+              </Button>
+            ) : (
+              <Link to="/login">
+                <Button size="sm" variant="ghost" className="ml-4 border border-zinc-700 text-white">
+                  Login
+                </Button>
+              </Link>
+            )}
           </div>
           <AuthGate />
           <Outlet />
