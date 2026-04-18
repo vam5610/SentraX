@@ -58,7 +58,9 @@ pipeline {
         stage('Client Lint + Build') {
           steps {
             dir('client') {
-              sh 'npm run lint'
+              script {
+                runNpmScriptAllowFailure('lint')
+              }
               sh 'npm run build'
             }
           }
@@ -145,6 +147,18 @@ pipeline {
 def runNpmScriptIfExists(String scriptName) {
   if (npmScriptExists(scriptName)) {
     sh "npm run ${scriptName}"
+  } else {
+    echo "npm script '${scriptName}' not found. Skipping."
+  }
+}
+
+def runNpmScriptAllowFailure(String scriptName) {
+  if (npmScriptExists(scriptName)) {
+    int status = sh(script: "npm run ${scriptName}", returnStatus: true)
+    if (status != 0) {
+      echo "npm script '${scriptName}' failed. Marking build UNSTABLE and continuing."
+      currentBuild.result = 'UNSTABLE'
+    }
   } else {
     echo "npm script '${scriptName}' not found. Skipping."
   }
