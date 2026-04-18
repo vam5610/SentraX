@@ -1,0 +1,23 @@
+# Backend
+backend/node_modules
+backend/npm-debug.log*
+backend/.env
+
+# Client
+client/node_modules
+client/dist
+client/npm-debug.log*
+
+# Git + IDE
+.git
+.gitignore
+.vscode
+.idea
+
+# OS
+.DS_Store
+Thumbs.db
+
+# CI artifacts
+reports
+coverage
