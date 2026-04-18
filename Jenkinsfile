@@ -1,5 +1,9 @@
 pipeline {
   agent any
+  
+  tools {
+    nodejs 'Node22'
+  }
 
   options {
     timestamps()
